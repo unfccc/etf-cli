@@ -1,5 +1,7 @@
 # UNFCCC ETF Command Line (CLI) Tool
 
+[![unit tests](https://github.com/unfccc/etf-cli/actions/workflows/pytest.yml/badge.svg)](https://github.com/unfccc/etf-cli/actions/workflows/pytest.yml)
+
 ## Background
 
 The Enhanced Transparency Framework (ETF) is a set of reporting and review requirements under the Paris Agreement to enhance the transparency of climate action and support.
@@ -76,6 +78,12 @@ etf data stats country_data.json
 ```
 
 The tool contains built-in help on commands, available by calling with `--help` parameter.
+
+## Bug reporting
+
+Please submit any issues directly into this repository and not via ETF reporting tools ServiceNow portal.
+
+That will ensure proper routing and faster processing.
 
 ## Credits
 
