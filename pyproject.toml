@@ -3,7 +3,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "unfccc-etf-cli"
-version = "1.0.0"
+version = "1.0.1"
 authors = [
     {name = "UNFCCC / ICT / Delivery", email = "eas@unfccc.int" },
 ]
