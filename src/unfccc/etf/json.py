@@ -137,7 +137,11 @@ class JSONTreeWalker:
 class JSONTree(JSONTreeWalker):
 
     def __init__(self, data):
-        if isinstance(data, io.IOBase):
+        if isinstance(data, io.IOBase) or (
+            # handle pytest on Windows, which passes tempfile._TemporaryFileWrapper,
+            # which is not io.IOBase
+            hasattr(data, 'read') and callable(data.read)
+        ):
             data = self.from_json_file(data)
         self.tree = JSONTreeRoot(data)
 
