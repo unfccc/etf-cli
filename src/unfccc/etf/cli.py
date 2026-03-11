@@ -45,8 +45,8 @@ def find(metadata, sector):
         logger.info('found node with uid = "%s" at "%s"', node["uid"], path)
         for parent in metadata.parents(node):
             if metadata.is_object(parent) and 'name' in parent:
-                logger.info('\tsector: %s %s', parent['name_prefix'],
-                            parent['name'])
+                logger.info('\tsector: %s %s,\n\t\tuid: %s', parent['name_prefix'],
+                            parent['name'], parent['uid'])
         logger.info('\tnode: %s %s', node['name_prefix'], node['name'])
     for dimension_instance in metadata.find_navigation_dis(filter_):
         path = metadata.json_path(dimension_instance)
@@ -124,7 +124,7 @@ def filter(metadata, sector, input_file, output_file):
 @data.command(help='correct errors in data file')
 @pass_metadata
 @click.option('-r', '--requirements', required=True, multiple=True,
-              type=click.Choice(['GRIDS', 'PARENTS', 'ALL']), default=['ALL'],
+              type=click.Choice(['GRIDS', 'PARENTS', 'CALCULATED', 'ALL']), default=['ALL'],
               help='type(s) of import requirements to satisfy')
 @click.argument('input_file', type=click.File('rb'),
                 default=click.get_text_stream('stdin'))
@@ -142,6 +142,9 @@ def fix(metadata, requirements, input_file, output_file):
         for node in country_data.traverse(country_data.nodes):
             if node.get('template_node_uid'):
                 country_data.fix_node_grid(node)
+    if 'CALCULATED' in requirements or 'ALL' in requirements:
+        logger.info('removing data values for calculated variables')
+        country_data.remove_calculated_values()
     country_data.dump(output_file)
 
 

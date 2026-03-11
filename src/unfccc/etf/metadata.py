@@ -40,6 +40,7 @@ class Metadata(JSONTree):
             ['uid', 'name'], self.traverse(self.navigation_root)
         )
         self.grid_index = JSONCatalog(['node_uid'], iter(self.grids))
+        self.variable_index = JSONCatalog(['id', 'uid'], iter(self.variables))
 
     def debug_version(self):
         if version := self.root.get('version'):
@@ -126,6 +127,15 @@ class Metadata(JSONTree):
 
     def get_grid(self, node_uid):
         return self.grid_index.first(node_uid=node_uid)
+
+    def get_variable(self, uid):
+        return self.variable_index.first(uid=uid)
+
+    def is_calculated_variable(self, variable):
+        if not variable['is_calculated']:
+            return False
+        node = self.get_node(variable['node_uid'])
+        return node['type'] == 'FIXED'
 
     def collect_sector_uids(self, filter_):
         result = {

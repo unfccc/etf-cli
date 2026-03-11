@@ -2,6 +2,7 @@ from copy import deepcopy
 import functools
 import logging
 import secrets
+from functools import partial
 
 from .json import JSONCatalog, JSONTree
 from .util import pformat_size, sizeof_dict
@@ -210,3 +211,28 @@ class CountryData(JSONTree):
                 'size': pformat_size(size)
             })
         return result
+
+    def is_calculated_value(self, value):
+        variable_uid = value.get('variable_uid')
+        if not variable_uid:
+            logger.error('data value without variable UID: %s', self.json_path(value))
+            return False
+        if not self.is_metadata_uid(variable_uid):
+            return False
+        variable = self.metadata.get_variable(variable_uid)
+        if variable is None:
+            logger.error('data value refers to non-existing variable %s: %s', variable_uid, self.json_path(value))
+            return False
+        return self.metadata.is_calculated_variable(variable)
+
+    def remove_calculated_values(self):
+
+        def is_not_calculated_value(year, value):
+            calculated = self.is_calculated_value(value)
+            if calculated:
+                logger.debug('removing the value of a calculated variable %s / %s', year, value['variable_uid'])
+            return not calculated
+
+        for inventory in self.data:
+           year = inventory['inventory_year']
+           self.filter_out(inventory['values'], partial(is_not_calculated_value, year))

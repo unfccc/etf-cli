@@ -2,7 +2,6 @@ import copy
 import json
 import pytest
 import sys
-from io import StringIO
 import tempfile
 from unittest import mock
 
@@ -20,7 +19,7 @@ def catalog():
 @pytest.fixture
 def country_specific_nodes(nodes, parent_uid):
     # form a "data file" tree, bound with 'parent_uid' references
-    rv = copy.deepcopy(nodes)
+    rv = copy.deepcopy(nodes)[0]['node']
     rv[1]['parent_uid'] = rv[3]['parent_uid'] = rv[4]['parent_uid'] = \
         parent_uid
     return rv
@@ -46,33 +45,35 @@ def test_jsontree_from_file(raw_metadata):
 
 def test_parents(raw_metadata):
     metadata = JSONTree(raw_metadata)
-    parent0 = metadata['Metadata']
-    parent1 = parent0[0]
-    parent2 = parent1['node']
-    lulucf = parent2[3]
+    root = metadata['Metadata']
+    metadata_singleton = root[0]
+    nodes = metadata_singleton['node']
+    totals = nodes[0]
+    sectors = totals['node']
+    lulucf = sectors[3]
     parents = metadata.parents(lulucf)
-    assert parents == (metadata.tree, parent0, parent1, parent2)
+    assert parents == (metadata.tree, root, metadata_singleton, nodes, totals, sectors)
 
 
 def test_json_path(raw_metadata):
     metadata = JSONTree(raw_metadata)
-    item = metadata['Metadata'][0]['node'][3]
-    assert metadata.json_path(item) == '.Metadata[0].node[3]'
+    item = metadata['Metadata'][0]['node'][0]['node'][3]
+    assert metadata.json_path(item) == '.Metadata[0].node[0].node[3]'
 
 
 def test_locate(raw_metadata):
     metadata = JSONTree(raw_metadata)
-    item = metadata['Metadata'][0]['node'][3]
-    assert metadata.locate('.Metadata[0].node[3]') is item
+    item = metadata['Metadata'][0]['node'][0]['node'][3]
+    assert metadata.locate('.Metadata[0].node[0].node[3]') is item
     assert metadata.locate('.Metadata[0].wrong_key') is None
 
 
 def test_traverse(raw_metadata):
     metadata = JSONTree(raw_metadata)
-    nodes = metadata['Metadata'][0]['node']
+    nodes = metadata['Metadata'][0]['node'][0]['node']
     for index, item in enumerate(metadata.traverse(nodes)):
         pass
-    assert index == len(nodes) - 1
+    assert item is nodes[-1]
 
 
 def test_catalog_reindex(catalog, metadata_node):
