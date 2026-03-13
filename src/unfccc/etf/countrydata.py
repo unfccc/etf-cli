@@ -135,13 +135,14 @@ class CountryData(JSONTree):
             template_var_uid = group['variable_uid']
             if template_var_uid is None:
                 continue
+            if group.get('line_type') == 'CROSS_REFERENCE':
+                continue
             variable = self.variable_index.first(
                 node_uid=node_uid,
                 template_var_uid=template_var_uid
             )
             if variable is None:
-                logger.debug('adding missing variable "%s" '
-                             'as required by grid "%s"',
+                logger.debug('adding missing variable "%s" as required by grid "%s"',
                              (node_uid, template_var_uid), template_node_uid)
                 variable = self.make_variable(node_uid, template_var_uid)
             group['variable_uid'] = variable['uid']
