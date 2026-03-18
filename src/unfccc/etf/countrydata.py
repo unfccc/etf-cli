@@ -151,10 +151,12 @@ class CountryData(JSONTree):
     def reparent_nodes(self):
         # reparent multi-level nodes into tree structure
         nested_nodes = []
+        processed = set()
         for index, node in enumerate(self.nodes):
             if 'template_node_uid' in node and 'parent_uid' in node:
                 node_uid = node['uid']
                 parent_uid = node['parent_uid']
+                template_node_uid = node['template_node_uid']
                 if self.is_metadata_uid(node_uid) \
                         or self.is_metadata_uid(parent_uid):
                     continue
@@ -166,7 +168,12 @@ class CountryData(JSONTree):
                     )
                     continue
                 yield node, parent_node
-                parent_node.setdefault('node', []).append(node)
+                if (parent_uid, template_node_uid) not in processed:
+                    parent_node.setdefault('node', []).append(node)
+                    processed.add((parent_uid, template_node_uid))
+                else:
+                    logger.error('detected duplicate node: template_node_uid="%s", parent_uid="%s"'.
+                                 template_node_uid, parent_uid)
                 nested_nodes.append(index)
                 del node['parent_uid']
         # remove reparented nodes from the root level list and rebuild indexes
