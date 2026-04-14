@@ -1,6 +1,8 @@
 import pytest
 import uuid
 
+from unfccc.etf.metadata import Metadata
+
 
 @pytest.fixture
 def uid():
@@ -148,3 +150,8 @@ def raw_metadata(nodes):
             }
         ]
     }
+
+
+@pytest.fixture
+def metadata(raw_metadata):
+    return Metadata(raw_metadata)

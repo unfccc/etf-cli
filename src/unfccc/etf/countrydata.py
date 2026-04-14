@@ -168,19 +168,21 @@ class CountryData(JSONTree):
                     )
                     continue
                 yield node, parent_node
-                if (parent_uid, template_node_uid) not in processed:
-                    parent_node.setdefault('node', []).append(node)
-                    processed.add((parent_uid, template_node_uid))
-                else:
+                if (parent_uid, template_node_uid) in processed:
                     logger.error('detected duplicate node: template_node_uid="%s", parent_uid="%s"'.
                                  template_node_uid, parent_uid)
-                nested_nodes.append(index)
+                processed.add((parent_uid, template_node_uid))
                 del node['parent_uid']
-        # remove reparented nodes from the root level list and rebuild indexes
+                parent_node.setdefault('node', []).append(deepcopy(node))
+                nested_nodes.append(index)
+        # cleanup reparented nodes in the root level list and rebuild indexes
         if nested_nodes:
             self.node_index.clear()
             for index in reversed(nested_nodes):
-                del self.nodes[index]
+                node = self.nodes[index]
+                for key in list(node):
+                    if key != 'uid':
+                        del node[key]
             self.node_index.index_iterable(self.traverse(self.nodes))
 
     def fix_node_grid(self, node):

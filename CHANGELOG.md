@@ -1,13 +1,13 @@
+## 1.1.1 (2026-04-14)
+
+* implement #4, improve fix that rebuilds tree of country specific nodes
+
+
 ## 1.1.0 (2026-03-20)
 
-### Feat
-
-- report and ignore duplicate country specific nodes
-- #3, filter out data values for calculated variables
-
-### Fix
-
-- #2, ignore groups with line_type CROSS_REFERENCE when creating grids and variables from the template
+* report and ignore duplicate country specific nodes
+* fix #3, ignore groups with line\_type == CROSS\_REFERENCE when creating grids and variables from the template
+* implement #2, filter out data values for calculated variables
 
 
 ## 1.0.1 (2025-08-08)

@@ -1,12 +1,3 @@
-import pytest
-from unfccc.etf.metadata import Metadata
-
-
-@pytest.fixture
-def metadata(raw_metadata):
-    return Metadata(raw_metadata)
-
-
 def test_collect_sector_uids(metadata, uid):
     totals = metadata.nodes[0]
     totals_uid = totals['uid']
