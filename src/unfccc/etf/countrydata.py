@@ -126,6 +126,7 @@ class CountryData(JSONTree):
     def clone_grid_from_template(self, template_node_uid, node_uid):
         result = deepcopy(self.get_grid(template_node_uid))
         result['node_uid'] = node_uid
+        has_cross_references = False
         for group in self.traverse(result['group']):
             if 'uid' not in group or 'variable_uid' not in group:
                 # only traverse nested groups
@@ -136,6 +137,9 @@ class CountryData(JSONTree):
             if template_var_uid is None:
                 continue
             if group.get('line_type') == 'CROSS_REFERENCE':
+                # first create variables in regular groups
+                # and then fix cross references in the second pass below
+                has_cross_references = True
                 continue
             variable = self.variable_index.first(
                 node_uid=node_uid,
@@ -146,6 +150,39 @@ class CountryData(JSONTree):
                              (node_uid, template_var_uid), template_node_uid)
                 variable = self.make_variable(node_uid, template_var_uid)
             group['variable_uid'] = variable['uid']
+        if not has_cross_references:
+            return result
+        # the pass above skipped some CROSS_REFERENCE groups,
+        # and left their 'variable_uid' attributes pointing to metadata templates,
+        # fix that by finding country specific variables that were created in the first pass
+        child_node_uids = set()
+        for node in self.node_index.search(uid=node_uid):
+            # loop over .search() because there can be two copies of the node:
+            # one copy with the full into created by re-parenting fix
+            # and another, former original stripped to 'uid' only,
+            # they can go in any order, so .first() cannot be used reliably
+            if node.get('node'):
+                child_node_uids.update(
+                    child_node['uid'] for child_node in self.traverse(node['node'])
+                )
+        for group in self.traverse(result['group']):
+            if group.get('line_type') == 'CROSS_REFERENCE':
+                template_var_uid = group['variable_uid']
+                if not self.is_metadata_uid(template_var_uid):
+                    logger.error('error when cloning grid for node %s from %s, '
+                                 'the CROSS_REFERENCE group %s already refers '
+                                 'to country specific variable %s',
+                                 node_uid, template_node_uid, group['uid'], template_var_uid)
+                    continue
+                group['variable_uid'] = None  # default if no variable will be found
+                for child_node_uid in child_node_uids:
+                    variable = self.variable_index.first(
+                        node_uid=child_node_uid,
+                        template_var_uid=template_var_uid
+                    )
+                    if variable is not None:
+                        group['variable_uid'] = variable['uid']
+                        break
         return result
 
     def reparent_nodes(self):

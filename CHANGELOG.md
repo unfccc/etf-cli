@@ -1,6 +1,7 @@
-## 1.1.1 (2026-04-14)
+## 1.1.1 (2026-04-15)
 
 * implement #4, improve fix that rebuilds tree of country specific nodes
+* fix #3, update CROSS\_REFERENCE groups with the correct variable references
 
 
 ## 1.1.0 (2026-03-20)
