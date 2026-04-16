@@ -142,6 +142,7 @@ def fix(metadata, requirements, input_file, output_file):
         for node in country_data.traverse(country_data.nodes):
             if node.get('template_node_uid'):
                 country_data.fix_node_grid(node)
+        country_data.fix_cross_references()
     if 'CALCULATED' in requirements or 'ALL' in requirements:
         logger.info('removing data values for calculated variables')
         country_data.remove_calculated_values()
