@@ -72,6 +72,10 @@ class CountryData(JSONTree):
     def is_metadata_uid(uid):
         return '-' in uid
 
+    @staticmethod
+    def is_visibility_reference(node):
+        return isinstance(node, dict) and list(node.keys()) == ['uid']
+
     def get_node(self, uid, fallback_to_metadata=True):
         result = self.node_index.first(uid=uid)
         if result is None and fallback_to_metadata:
@@ -141,14 +145,37 @@ class CountryData(JSONTree):
                 parent_node.setdefault('node', []).append(deepcopy(node))
                 nested_nodes.append(index)
         # cleanup reparented nodes in the root level list and rebuild indexes
-        if nested_nodes:
-            self.node_index.clear()
-            for index in reversed(nested_nodes):
-                node = self.nodes[index]
-                for key in list(node):
-                    if key != 'uid':
-                        del node[key]
-            self.node_index.index_iterable(self.traverse(self.nodes))
+        self.node_index.clear()
+        for index in reversed(nested_nodes):
+            del self.nodes[index]
+        self._fix_node_visibility_references()
+        self.node_index.index_iterable(self.traverse(self.nodes))
+
+# node visibility reference is a special copy of node
+# which retains its UID, and is placed in the root node list,
+# and tells ETF Reporter that the node should be shown in the interface,
+# example: { "uid": "00000000-0000-0000-0000-000000000000" }
+    def _fix_node_visibility_references(self):
+        """Move node visibility references to the end of node list
+        so that they are processed after the full nodes in the tree,
+        """
+        # remove node visibility references from their original places
+        noderef_indices = [
+            index for (index, node) in enumerate(self.nodes)
+            if self.is_visibility_reference(node)
+        ]
+        for index in reversed(noderef_indices):
+            del self.nodes[index]
+        # find out which nodes are nested in the tree
+        # and thus require adding a node visibility reference
+        root_node_uids = set(node['uid'] for node in self.nodes)
+        nested_node_uids = set(
+            node['uid'] for node in self.traverse(self.nodes)
+        ) - root_node_uids
+        # and add them at the end of root node list,
+        # making sure that node visibility reference always comes after its original
+        for uid in nested_node_uids:
+            self.nodes.append({'uid': uid})
 
     def make_variable(self, node_uid, template_var_uid):
         result = {
@@ -240,7 +267,6 @@ class CountryData(JSONTree):
                                  (node_uid, template_var_uid), group['uid'])
                     root_node_variable = self.make_variable(node_uid, template_var_uid)
                 group['variable_uid'] = root_node_variable['uid']
-
 
     def count_statistics(self):
         result = []
