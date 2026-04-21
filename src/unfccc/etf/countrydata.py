@@ -113,6 +113,43 @@ class CountryData(JSONTree):
     def make_uid():
         return secrets.token_hex(12)
 
+    def reparent_nodes(self):
+        # reparent multi-level nodes into tree structure
+        nested_nodes = []
+        processed = set()
+        for index, node in enumerate(self.nodes):
+            if 'template_node_uid' in node and 'parent_uid' in node:
+                node_uid = node['uid']
+                parent_uid = node['parent_uid']
+                template_node_uid = node['template_node_uid']
+                if self.is_metadata_uid(node_uid) \
+                        or self.is_metadata_uid(parent_uid):
+                    continue
+                parent_node = self.get_node(parent_uid, False)
+                if parent_node is None:
+                    logger.error(
+                        'node "%s" refers to missing parent node "%s"',
+                        node_uid, parent_uid
+                    )
+                    continue
+                yield node, parent_node
+                if (parent_uid, template_node_uid) in processed:
+                    logger.error('detected duplicate node: template_node_uid="%s", parent_uid="%s"'.
+                                 template_node_uid, parent_uid)
+                processed.add((parent_uid, template_node_uid))
+                del node['parent_uid']
+                parent_node.setdefault('node', []).append(deepcopy(node))
+                nested_nodes.append(index)
+        # cleanup reparented nodes in the root level list and rebuild indexes
+        if nested_nodes:
+            self.node_index.clear()
+            for index in reversed(nested_nodes):
+                node = self.nodes[index]
+                for key in list(node):
+                    if key != 'uid':
+                        del node[key]
+            self.node_index.index_iterable(self.traverse(self.nodes))
+
     def make_variable(self, node_uid, template_var_uid):
         result = {
             'uid': self.make_uid(),
@@ -151,51 +188,10 @@ class CountryData(JSONTree):
             group['variable_uid'] = variable['uid']
         return result
 
-
-    def reparent_nodes(self):
-        # reparent multi-level nodes into tree structure
-        nested_nodes = []
-        processed = set()
-        for index, node in enumerate(self.nodes):
-            if 'template_node_uid' in node and 'parent_uid' in node:
-                node_uid = node['uid']
-                parent_uid = node['parent_uid']
-                template_node_uid = node['template_node_uid']
-                if self.is_metadata_uid(node_uid) \
-                        or self.is_metadata_uid(parent_uid):
-                    continue
-                parent_node = self.get_node(parent_uid, False)
-                if parent_node is None:
-                    logger.error(
-                        'node "%s" refers to missing parent node "%s"',
-                        node_uid, parent_uid
-                    )
-                    continue
-                yield node, parent_node
-                if (parent_uid, template_node_uid) in processed:
-                    logger.error('detected duplicate node: template_node_uid="%s", parent_uid="%s"'.
-                                 template_node_uid, parent_uid)
-                processed.add((parent_uid, template_node_uid))
-                del node['parent_uid']
-                parent_node.setdefault('node', []).append(deepcopy(node))
-                nested_nodes.append(index)
-        # cleanup reparented nodes in the root level list and rebuild indexes
-        if nested_nodes:
-            self.node_index.clear()
-            for index in reversed(nested_nodes):
-                node = self.nodes[index]
-                for key in list(node):
-                    if key != 'uid':
-                        del node[key]
-            self.node_index.index_iterable(self.traverse(self.nodes))
-
     def fix_node_grid(self, node):
         if 'template_node_uid' not in node:
             return
         node_uid = node['uid']
-        if 'parent_uid' in node:
-            logger.debug('skipping broken node %s due to missing parent %s',
-                         node_uid, node['parent_uid'])
         grid = self.get_grid(node_uid, fallback_to_metadata=False)
         if grid is not None:
             return
@@ -204,8 +200,9 @@ class CountryData(JSONTree):
         template_node_uid = node['template_node_uid']
         new_grid = self.clone_grid_from_template(template_node_uid, node_uid)
         self.grids.append(new_grid)
+        # index new grid with all its groups,
+        # so that fix_cross_references() could find them later
         self.grid_index.index_iterable(self.traverse(new_grid))
-
 
     def fix_cross_references(self):
         for group in self.grid_index.search(line_type='CROSS_REFERENCE'):
@@ -230,7 +227,19 @@ class CountryData(JSONTree):
                     group['variable_uid'] = variable['uid']
                     break
             else:
-                group['variable_uid'] = None  # default if no variable was found
+                root_node_variable = self.variable_index.first(
+                    node_uid=node_uid,
+                    template_var_uid=template_var_uid
+                )
+                logger.debug('could not find a variable for CROSS_REFERENCE group "%s", '
+                             '%s child nodes checked, root node variable (%s, %s) %s',
+                             group['uid'], len(child_node_uids), node_uid, template_var_uid,
+                             'exists' if root_node_variable is not None else 'does not exist')
+                if root_node_variable is None:
+                    logger.debug('adding missing variable "%s" as required by group "%s"',
+                                 (node_uid, template_var_uid), group['uid'])
+                    root_node_variable = self.make_variable(node_uid, template_var_uid)
+                group['variable_uid'] = root_node_variable['uid']
 
 
     def count_statistics(self):
