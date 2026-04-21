@@ -47,7 +47,10 @@ def find(metadata, sector):
             if metadata.is_object(parent) and 'name' in parent:
                 logger.info('\tsector: %s %s,\n\t\tuid: %s', parent['name_prefix'],
                             parent['name'], parent['uid'])
-        logger.info('\tnode: %s %s', node['name_prefix'], node['name'])
+        logger.info('\tnode: %s %s\n\t\tuid: %s',
+                    node.get('name_prefix', ''),
+                    node.get('name', '<UNDEFINED>'),
+                    node['uid'])
     for dimension_instance in metadata.find_navigation_dis(filter_):
         path = metadata.json_path(dimension_instance)
         logger.info('found dimension instance with uid = "%s" at "%s"',
