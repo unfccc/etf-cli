@@ -43,6 +43,9 @@ def test_reparent_nodes(metadata, raw_countrydata):
             ],
         },
         {
+            'uid': 'uid0'  # stripped original of a root node
+        },
+        {
             'uid': 'uid2'  # stripped original of a child node
         }
     ]

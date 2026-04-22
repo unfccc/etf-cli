@@ -166,15 +166,13 @@ class CountryData(JSONTree):
         ]
         for index in reversed(noderef_indices):
             del self.nodes[index]
-        # find out which nodes are nested in the tree
-        # and thus require adding a node visibility reference
-        root_node_uids = set(node['uid'] for node in self.nodes)
-        nested_node_uids = set(
+        # collect UIDs of all nodes in the tree
+        all_node_uids = set(
             node['uid'] for node in self.traverse(self.nodes)
-        ) - root_node_uids
-        # and add them at the end of root node list,
-        # making sure that node visibility reference always comes after its original
-        for uid in nested_node_uids:
+        )
+        # and add them as node visibility references at the end of the node list,
+        # making sure that reference always comes after its original
+        for uid in sorted(all_node_uids):
             self.nodes.append({'uid': uid})
 
     def make_variable(self, node_uid, template_var_uid):

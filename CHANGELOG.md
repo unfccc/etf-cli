@@ -1,7 +1,7 @@
 ## 1.1.2 (2026-04-21)
 
-* fix #4, move node visibility references after the original nodes
-* fix #3, create variables for CROSS\_REFERENCE groups when necessary
+* fix #4: move node visibility references after the original nodes
+* fix #3: create variables for CROSS\_REFERENCE groups when necessary
 
 
 ## 1.1.1 (2026-04-15)
