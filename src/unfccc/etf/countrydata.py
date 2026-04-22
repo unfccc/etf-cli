@@ -159,6 +159,10 @@ class CountryData(JSONTree):
         """Move node visibility references to the end of node list
         so that they are processed after the full nodes in the tree,
         """
+        # collect UIDs of all nodes in the tree
+        all_node_uids = set(
+            node['uid'] for node in self.traverse(self.nodes)
+        )
         # remove node visibility references from their original places
         noderef_indices = [
             index for (index, node) in enumerate(self.nodes)
@@ -166,11 +170,7 @@ class CountryData(JSONTree):
         ]
         for index in reversed(noderef_indices):
             del self.nodes[index]
-        # collect UIDs of all nodes in the tree
-        all_node_uids = set(
-            node['uid'] for node in self.traverse(self.nodes)
-        )
-        # and add them as node visibility references at the end of the node list,
+        # then add node visibility references at the end of the node list,
         # making sure that reference always comes after its original
         for uid in sorted(all_node_uids):
             self.nodes.append({'uid': uid})

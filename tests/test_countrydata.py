@@ -9,6 +9,9 @@ def raw_countrydata():
         'country_specific_data': {
             'nodes': [
                 {
+                    'uid': '00000000-0000-0000-0000-000000000000'  # node visibility reference for metadata node
+                },
+                {
                     'name': 'example parent node',
                     'uid': 'uid0',
                     'template_node_uid' : 'uid1',
@@ -41,6 +44,9 @@ def test_reparent_nodes(metadata, raw_countrydata):
                     'template_node_uid': 'uid3',
                 },
             ],
+        },
+        {
+            'uid': '00000000-0000-0000-0000-000000000000'
         },
         {
             'uid': 'uid0'  # stripped original of a root node
